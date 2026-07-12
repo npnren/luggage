@@ -1,0 +1,14 @@
+{
+  "name": "Will my luggage fit? / 行李放得下嗎？",
+  "short_name": "LuggageFit",
+  "description": "Check if your suitcases fit in a rental car, with a 3D packing view.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f4f6fa",
+  "theme_color": "#2563eb",
+  "lang": "zh-TW",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

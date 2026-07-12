@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="96" fill="#2563eb"/>
+  <!-- car body -->
+  <path d="M96 320 q24 -72 60 -80 h200 q36 8 60 80 v44 a12 12 0 0 1 -12 12 h-32 v-12 h-232 v12 h-32 a12 12 0 0 1 -12 -12 z"
+        fill="#ffffff" opacity="0.18"/>
+  <!-- suitcase -->
+  <rect x="176" y="150" width="160" height="200" rx="20" fill="#ffffff"/>
+  <rect x="214" y="120" width="84" height="40" rx="16" fill="none" stroke="#ffffff" stroke-width="16"/>
+  <line x1="216" y1="150" x2="216" y2="350" stroke="#2563eb" stroke-width="10"/>
+  <line x1="296" y1="150" x2="296" y2="350" stroke="#2563eb" stroke-width="10"/>
+  <!-- wheels -->
+  <circle cx="168" cy="378" r="26" fill="#1f2933"/>
+  <circle cx="344" cy="378" r="26" fill="#1f2933"/>
+</svg>
