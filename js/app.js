@@ -45,7 +45,6 @@
     $("subtitle").textContent = window.t("subtitle");
     $("carLabel").textContent = window.t("carLabel");
     $("seatsDownLabel").textContent = window.t("seatsDown");
-    $("yourBagsLabel").textContent = window.t("yourBags");
     $("addPresetLabel").textContent = window.t("addPreset");
     $("clearBtn").textContent = window.t("clear");
     $("customLabel").textContent = window.t("addCustom");
@@ -69,7 +68,6 @@
     $("matchesTitleLabel").textContent = window.t("matchesTitle");
     renderCarSelect();
     renderPresets();
-    renderBagList();
     renderResult();
     renderView(); // re-label the 2D/3D canvas in the new language (guards on lastResult)
     if (state.mode === "luggage") renderCarMatches();
@@ -132,22 +130,79 @@
   function renderPresets() {
     var wrap = $("presets");
     wrap.innerHTML = "";
-    window.LUGGAGE_PRESETS.forEach(function (p) {
+
+    var presetIds = {};
+    window.LUGGAGE_PRESETS.forEach(function (p) { presetIds[p.id] = true; });
+
+    function makeTile(p, labelText) {
       var b = document.createElement("button");
       b.className = "preset";
       b.style.borderColor = p.color;
+      b.dataset.key = p.id;
       b.innerHTML = '<span class="swatch" style="background:' + p.color + '"></span>' +
-        window.localized(p.label) +
+        labelText +
         '<small>' + p.w + "×" + p.d + "×" + p.h + "</small>";
-      b.onclick = function () { addBag(p); };
-      wrap.appendChild(b);
+      b.onclick = function (e) {
+        if (e.target.closest('.qtybadge')) return; // badge has its own handler
+        addBag(p);
+      };
+      return b;
+    }
+
+    window.LUGGAGE_PRESETS.forEach(function (p) {
+      wrap.appendChild(makeTile(p, window.localized(p.label)));
+    });
+
+    // Dynamic tiles for any custom bags the user added.
+    state.bags.forEach(function (bag) {
+      if (presetIds[bag.key]) return;
+      wrap.appendChild(makeTile(
+        { id: bag.key, w: bag.w, d: bag.d, h: bag.h, color: bag.color,
+          rigid: bag.rigid, allowLieFlat: bag.allowLieFlat,
+          label: { en: bag.label, "zh-TW": bag.label } },
+        bag.label
+      ));
+    });
+
+    updatePresetBadges();
+  }
+
+  function updatePresetBadges(flashKey) {
+    var wrap = $("presets");
+    var buttons = wrap.querySelectorAll('.preset');
+    buttons.forEach(function (b) {
+      var key = b.dataset.key;
+      var bag = state.bags.filter(function (x) { return x.key === key; })[0];
+      var existing = b.querySelector('.qtybadge');
+      if (existing) existing.remove();
+      if (bag && bag.qty > 0) {
+        b.classList.add('has-qty');
+        var badge = document.createElement('span');
+        badge.className = 'qtybadge' + (key === flashKey ? ' pop' : '');
+        badge.textContent = '×' + bag.qty;
+        badge.title = window.LANG === "zh-TW" ? "點一下減一" : "Click to remove one";
+        badge.onclick = function (e) {
+          e.stopPropagation();
+          bag.qty--;
+          if (bag.qty <= 0) {
+            state.bags = state.bags.filter(function (x) { return x.key !== key; });
+            renderPresets(); // rebuild in case a custom tile disappears
+          } else {
+            updatePresetBadges();
+          }
+          check();
+        };
+        b.appendChild(badge);
+      } else {
+        b.classList.remove('has-qty');
+      }
     });
   }
 
   function addBag(preset) {
-    // merge qty if same key already present
     var key = preset.id;
     var existing = state.bags.filter(function (x) { return x.key === key; })[0];
+    var isNew = !existing;
     if (existing) { existing.qty++; }
     else {
       state.bags.push({
@@ -156,35 +211,16 @@
         rigid: preset.rigid, allowLieFlat: preset.allowLieFlat, qty: 1
       });
     }
-    renderBagList();
-    check();
-  }
-
-  function renderBagList() {
-    var list = $("bagList");
-    list.innerHTML = "";
-    if (!state.bags.length) {
-      var e = document.createElement("div");
-      e.className = "muted small"; e.textContent = window.t("empty");
-      list.appendChild(e); return;
+    if (isNew) renderPresets(); // new custom bag → add its tile
+    var btn = $("presets").querySelector('[data-key="' + CSS.escape(key) + '"]');
+    if (btn) {
+      btn.classList.remove('flash');
+      void btn.offsetWidth; // restart animation
+      btn.classList.add('flash');
+      setTimeout(function () { btn.classList.remove('flash'); }, 400);
     }
-    state.bags.forEach(function (bag, i) {
-      var row = document.createElement("div");
-      row.className = "bagrow";
-      row.innerHTML =
-        '<span class="swatch" style="background:' + bag.color + '"></span>' +
-        '<span class="bagname">' + bag.label + ' <small>' + bag.w + "×" + bag.d + "×" + bag.h + '</small></span>';
-      var ctrl = document.createElement("div");
-      ctrl.className = "qtyctrl";
-      var minus = document.createElement("button"); minus.textContent = "−";
-      var qty = document.createElement("span"); qty.textContent = bag.qty; qty.className = "qty";
-      var plus = document.createElement("button"); plus.textContent = "+";
-      minus.onclick = function () { bag.qty--; if (bag.qty <= 0) state.bags.splice(i, 1); renderBagList(); check(); };
-      plus.onclick = function () { bag.qty++; renderBagList(); check(); };
-      ctrl.appendChild(minus); ctrl.appendChild(qty); ctrl.appendChild(plus);
-      row.appendChild(ctrl);
-      list.appendChild(row);
-    });
+    updatePresetBadges(key);
+    check();
   }
 
   function expandedBags() {
@@ -394,7 +430,7 @@
     ["cbW", "cbD", "cbH", "coW", "coH"].forEach(function (id) {
       $(id).oninput = function () { renderCarSelect(); check(); };
     });
-    $("clearBtn").onclick = function () { state.bags = []; renderBagList(); check(); };
+    $("clearBtn").onclick = function () { state.bags = []; renderPresets(); check(); };
     $("addCustomBtn").onclick = function () {
       var w = parseFloat($("cw").value), d = parseFloat($("cd").value), h = parseFloat($("ch").value);
       if (!(w > 0 && d > 0 && h > 0)) return;

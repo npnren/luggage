@@ -1,5 +1,5 @@
 /* Service worker — offline app shell + runtime CDN caching. */
-var CACHE = "luggage-fit-v11";
+var CACHE = "luggage-fit-v13";
 var SHELL = [
   "./",
   "./index.html",
